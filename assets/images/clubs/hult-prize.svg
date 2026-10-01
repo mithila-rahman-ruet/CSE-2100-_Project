@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#831843"/>
+      <stop offset="100%" stop-color="#be185d"/>
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-opacity="0.3"/>
+    </filter>
+  </defs>
+  
+  <!-- Outer Rounded Card -->
+  <rect width="400" height="400" rx="48" fill="url(#bgGrad)"/>
+  
+  <!-- Outer Ring Accent -->
+  <circle cx="200" cy="200" r="175" fill="none" stroke="#f472b6" stroke-width="3" stroke-dasharray="8 6" opacity="0.4"/>
+  
+  <!-- Club Graphic Icon -->
+  <g filter="url(#shadow)">
+    <circle cx="200" cy="180" r="55" fill="none" stroke="#ffffff" stroke-width="8"/><path d="M200 125c-30 35-30 75 0 110M200 125c30 35 30 75 0 110M145 180h110" fill="none" stroke="#f472b6" stroke-width="6"/><polygon points="200,245 220,285 180,285" fill="#fde047"/>
+  </g>
+  
+  <!-- Club Acronym Text -->
+  <text x="200" y="340" font-family="'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-weight="800" font-size="28" fill="#ffffff" text-anchor="middle" letter-spacing="2" filter="url(#shadow)">
+    HULT PRIZE
+  </text>
+  
+  <!-- RUET Badge Tag -->
+  <rect x="150" y="35" width="100" height="24" rx="12" fill="#f472b6" opacity="0.9"/>
+  <text x="200" y="52" font-family="'Segoe UI', Roboto, sans-serif" font-weight="700" font-size="12" fill="#0f172a" text-anchor="middle" letter-spacing="1">
+    RUET
+  </text>
+</svg>

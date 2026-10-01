@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sell & Buy Marketplace - RUET Connect</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
+</head>
+<body class="bg-gray-50 text-gray-800">
+
+    <!-- ==================== GLOBAL NAVBAR ==================== -->
+    <nav id="mainNavbar" class="bg-blue-950 text-white shadow-lg sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+            <a href="../index.html" class="flex items-center gap-2">
+                <span class="text-2xl">🎓</span>
+                <span class="text-xl font-bold tracking-wide">RUET CONNECT</span>
+            </a>
+            <div class="h-8 w-24 bg-blue-900/60 rounded-lg animate-pulse"></div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-4 py-10">
+
+        <!-- Header -->
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-900">Sell & Buy Marketplace</h1>
+                <p class="text-gray-500 mt-1">Buy & sell second-hand books, cycles, electronics, and dorm essentials</p>
+            </div>
+            <button onclick="openAddProductModal()" 
+                    class="bg-green-600 hover:bg-green-700 text-white px-5 py-2.5 rounded-xl font-medium transition shadow-md flex items-center gap-2">
+                <span class="text-lg">+</span> Post Product for Sale
+            </button>
+        </div>
+
+        <!-- Search & Filter Controls -->
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 mb-8">
+            <div class="flex flex-col md:flex-row gap-4 justify-between items-center mb-4">
+                <!-- Search input -->
+                <div class="relative w-full md:w-96">
+                    <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">🔍</span>
+                    <input type="text" id="productSearch" oninput="applyProductFilters()" 
+                           placeholder="Search products by title, category, description..."
+                           class="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-500">
+                </div>
+
+                <!-- Sort dropdown -->
+                <div class="flex items-center gap-2 w-full md:w-auto justify-end">
+                    <label class="text-xs text-gray-500 font-semibold whitespace-nowrap">Sort By:</label>
+                    <select id="productSort" onchange="applyProductFilters()" 
+                            class="px-3.5 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-500 bg-white">
+                        <option value="newest">Newest First</option>
+                        <option value="priceLow">Price: Low to High</option>
+                        <option value="priceHigh">Price: High to Low</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Category Pills -->
+            <div class="flex flex-wrap gap-2 pt-2 border-t border-gray-100" id="categoryPillContainer">
+                <button onclick="filterCategory('all')" class="cat-pill px-4 py-1.5 rounded-full text-xs font-semibold bg-green-600 text-white transition" data-cat="all">All Items</button>
+                <button onclick="filterCategory('Books')" class="cat-pill px-4 py-1.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-700 hover:bg-gray-200 transition" data-cat="Books">📚 Books & Notes</button>
+                <button onclick="filterCategory('Electronics')" class="cat-pill px-4 py-1.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-700 hover:bg-gray-200 transition" data-cat="Electronics">⚡ Electronics & Gadgets</button>
+                <button onclick="filterCategory('Bicycles')" class="cat-pill px-4 py-1.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-700 hover:bg-gray-200 transition" data-cat="Bicycles">🚲 Cycles & Transport</button>
+                <button onclick="filterCategory('Room Essentials')" class="cat-pill px-4 py-1.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-700 hover:bg-gray-200 transition" data-cat="Room Essentials">🛏️ Hall & Room Essentials</button>
+                <button onclick="filterCategory('Others')" class="cat-pill px-4 py-1.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-700 hover:bg-gray-200 transition" data-cat="Others">📦 Others</button>
+            </div>
+        </div>
+
+        <!-- Products Grid -->
+        <div id="productsGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            <div class="col-span-full text-center py-16 text-gray-400">
+                <div class="w-10 h-10 border-4 border-green-500 border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
+                <p>Loading marketplace items...</p>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- ==================== POST PRODUCT MODAL ==================== -->
+    <div id="addProductModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4 overflow-y-auto">
+        <div class="bg-white rounded-2xl w-full max-w-lg my-8 p-6 shadow-2xl border border-gray-100 animate-fade-up">
+            <div class="flex justify-between items-center mb-5 pb-3 border-b border-gray-100">
+                <div class="flex items-center gap-2">
+                    <span class="text-xl">🛒</span>
+                    <h3 class="text-lg font-bold text-gray-900">Post Item for Sale</h3>
+                </div>
+                <button onclick="closeAddProductModal()" class="text-gray-400 hover:text-gray-600 text-2xl font-bold leading-none">&times;</button>
+            </div>
+
+            <form onsubmit="handlePostProduct(event)" class="space-y-4">
+
+                <div>
+                    <label class="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">Product Title *</label>
+                    <input type="text" id="prodTitle" placeholder="e.g. FX-991ES Plus Scientific Calculator, Phoenix Bicycle" required
+                        class="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-500">
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">Category *</label>
+                        <select id="prodCategory" required class="w-full px-3 py-2.5 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-500 bg-white">
+                            <option value="Books">Books & Notes</option>
+                            <option value="Electronics">Electronics & Gadgets</option>
+                            <option value="Bicycles">Cycles & Transport</option>
+                            <option value="Room Essentials">Hall & Room Essentials</option>
+                            <option value="Others">Others</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">Price (৳ BDT) *</label>
+                        <input type="number" id="prodPrice" min="0" step="1" placeholder="e.g. 500" required
+                            class="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-500">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">Condition *</label>
+                        <select id="prodCondition" required class="w-full px-3 py-2.5 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-500 bg-white">
+                            <option value="Like New">Like New</option>
+                            <option value="Good">Gently Used / Good</option>
+                            <option value="Fair">Fair / Usable</option>
+                            <option value="Brand New">Brand New</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">Hall / Location *</label>
+                        <input type="text" id="prodLocation" placeholder="e.g. Hamid Hall / Gate" required
+                            class="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-500">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">Contact Phone *</label>
+                    <input type="tel" id="prodContact" placeholder="01XXXXXXXXX" required
+                        class="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-500">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">Description</label>
+                    <textarea id="prodDescription" rows="3" placeholder="Condition details, reason for selling, accessories included..."
+                        class="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-500"></textarea>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">Product Photo (Optional)</label>
+                    <input type="file" id="prodImage" accept="image/*" onchange="previewProductPhoto(event)"
+                        class="w-full text-xs text-gray-500 file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100 cursor-pointer">
+                    <div id="productPhotoPreviewContainer" class="mt-2 hidden">
+                        <img id="productPhotoPreview" class="w-full h-36 object-cover rounded-xl border border-gray-200">
+                    </div>
+                </div>
+
+                <div id="postProductError" class="hidden text-red-600 text-xs bg-red-50 p-2.5 rounded-lg border border-red-200"></div>
+
+                <div class="flex items-center justify-end gap-3 pt-3 border-t border-gray-100">
+                    <button type="button" onclick="closeAddProductModal()" 
+                            class="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 font-medium">
+                        Cancel
+                    </button>
+                    <button type="submit" id="submitProductBtn"
+                            class="bg-green-600 hover:bg-green-700 text-white font-medium px-6 py-2.5 rounded-xl text-sm transition shadow-md flex items-center gap-2">
+                        <span>List Product</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Firebase Logic -->
+    <script src="../js/firebase.js"></script>
+
+    <!-- Marketplace Logic -->
+    <script>
+        let allProducts = [];
+        let currentCategory = 'all';
+        let productPhotoBase64 = null;
+
+        document.addEventListener("DOMContentLoaded", () => {
+            // Check URL search parameters
+            const urlParams = new URLSearchParams(window.location.search);
+            const queryParam = urlParams.get('q');
+            if (queryParam) {
+                const searchInput = document.getElementById('productSearch');
+                if (searchInput) searchInput.value = queryParam;
+            }
+
+            loadProducts();
+        });
+
+        function loadProducts() {
+            if (!db) return;
+            db.collection("products").orderBy("createdAt", "desc").onSnapshot(snapshot => {
+                allProducts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                applyProductFilters();
+            }, err => {
+                console.error("Firestore error loading products:", err);
+                document.getElementById('productsGrid').innerHTML = `
+                    <div class="col-span-full text-center py-16 text-red-500">
+                        Failed to load products. Please refresh the page.
+                    </div>
+                `;
+            });
+        }
+
+        function filterCategory(cat) {
+            currentCategory = cat;
+            document.querySelectorAll('.cat-pill').forEach(btn => {
+                if (btn.dataset.cat === cat) {
+                    btn.className = "cat-pill px-4 py-1.5 rounded-full text-xs font-semibold bg-green-600 text-white transition";
+                } else {
+                    btn.className = "cat-pill px-4 py-1.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-700 hover:bg-gray-200 transition";
+                }
+            });
+            applyProductFilters();
+        }
+
+        function applyProductFilters() {
+            const term = (document.getElementById('productSearch')?.value || '').toLowerCase().trim();
+            const sortVal = document.getElementById('productSort')?.value || 'newest';
+
+            let filtered = allProducts.filter(item => {
+                const matchCat = (currentCategory === 'all') || (item.category === currentCategory);
+                const titleStr = (item.title || '').toLowerCase();
+                const descStr = (item.description || '').toLowerCase();
+                const sellerStr = (item.sellerName || '').toLowerCase();
+                const locStr = (item.location || '').toLowerCase();
+                const matchSearch = !term || titleStr.includes(term) || descStr.includes(term) || sellerStr.includes(term) || locStr.includes(term);
+                return matchCat && matchSearch;
+            });
+
+            // Sorting
+            filtered.sort((a, b) => {
+                if (sortVal === 'priceLow') return Number(a.price || 0) - Number(b.price || 0);
+                if (sortVal === 'priceHigh') return Number(b.price || 0) - Number(a.price || 0);
+                // default newest
+                const tA = a.createdAt?.toDate?.() || 0;
+                const tB = b.createdAt?.toDate?.() || 0;
+                return tB - tA;
+            });
+
+            renderProducts(filtered);
+        }
+
+        function renderProducts(items) {
+            const grid = document.getElementById('productsGrid');
+            if (items.length === 0) {
+                grid.innerHTML = `
+                    <div class="col-span-full bg-white rounded-2xl p-12 text-center border border-gray-100">
+                        <div class="text-4xl mb-3">🛒</div>
+                        <h3 class="text-lg font-bold text-gray-800">No products found</h3>
+                        <p class="text-sm text-gray-500 mt-1">There are no products listed matching your criteria.</p>
+                        <button onclick="openAddProductModal()" class="mt-4 bg-green-600 hover:bg-green-700 text-white font-medium text-xs px-4 py-2 rounded-xl transition shadow-sm">
+                            + Post a Product
+                        </button>
+                    </div>
+                `;
+                return;
+            }
+
+            const currentUid = auth?.currentUser?.uid;
+
+            grid.innerHTML = items.map(prod => {
+                const isOwner = currentUid && (prod.sellerUid === currentUid);
+                const dateStr = formatDate(prod.createdAt);
+                const sellerInitial = (prod.sellerName || "U").charAt(0).toUpperCase();
+
+                return `
+                    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all flex flex-col overflow-hidden group">
+                        
+                        <!-- Image Container -->
+                        <div class="relative w-full h-48 bg-gray-100 overflow-hidden flex items-center justify-center">
+                            ${prod.imageUrl 
+                                ? `<img src="${escapeHtml(prod.imageUrl)}" alt="${escapeHtml(prod.title)}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" onclick="window.open('${escapeHtml(prod.imageUrl)}', '_blank')">`
+                                : `<div class="text-4xl text-gray-300">📦</div>`
+                            }
+                            <span class="absolute top-2.5 right-2.5 bg-black/60 backdrop-blur-md text-white text-[11px] font-semibold px-2.5 py-0.5 rounded-full">
+                                ${escapeHtml(prod.condition || 'Used')}
+                            </span>
+                            <span class="absolute top-2.5 left-2.5 bg-green-600 text-white text-[11px] font-bold px-2.5 py-0.5 rounded-full shadow-sm">
+                                ৳ ${Number(prod.price || 0).toLocaleString()}
+                            </span>
+                        </div>
+
+                        <!-- Content -->
+                        <div class="p-4 flex-1 flex flex-col justify-between">
+                            <div>
+                                <span class="text-[11px] font-semibold text-green-700 bg-green-50 px-2 py-0.5 rounded">
+                                    ${escapeHtml(prod.category || 'General')}
+                                </span>
+                                <h3 class="font-bold text-gray-900 text-base mt-2 line-clamp-1 group-hover:text-green-700 transition">
+                                    ${escapeHtml(prod.title)}
+                                </h3>
+                                <p class="text-xs text-gray-500 mt-1 line-clamp-2">
+                                    ${escapeHtml(prod.description || 'No detailed description provided.')}
+                                </p>
+                                <p class="text-xs text-gray-500 mt-2 flex items-center gap-1">
+                                    <span>📍</span> <span class="truncate">${escapeHtml(prod.location || 'RUET Campus')}</span>
+                                    <span class="text-gray-300">•</span>
+                                    <span>${dateStr}</span>
+                                </p>
+                            </div>
+
+                            <!-- Seller Metadata & Action -->
+                            <div class="mt-4 pt-3 border-t border-gray-100 flex items-center justify-between gap-2">
+                                <a href="view-profile.html?id=${prod.sellerUid}" class="flex items-center gap-2 hover:opacity-80 transition min-w-0">
+                                    <div class="w-7 h-7 rounded-full bg-blue-700 text-white flex items-center justify-center text-xs font-bold flex-shrink-0">
+                                        ${sellerInitial}
+                                    </div>
+                                    <div class="truncate">
+                                        <p class="text-xs font-semibold text-gray-800 truncate">${escapeHtml(prod.sellerName || 'Student')}</p>
+                                        ${prod.sellerStudentId ? `<p class="text-[10px] text-gray-400 font-mono">ID: ${escapeHtml(prod.sellerStudentId)}</p>` : ''}
+                                    </div>
+                                </a>
+
+                                <div class="flex items-center gap-1.5 flex-shrink-0">
+                                    ${isOwner ? `
+                                        <button onclick="deleteProduct('${prod.id}')" title="Delete listing" 
+                                                class="text-xs text-red-600 bg-red-50 hover:bg-red-100 p-1.5 rounded-lg font-medium transition">
+                                            🗑️
+                                        </button>
+                                    ` : ''}
+                                    <a href="tel:${escapeHtml(prod.contact)}" class="bg-green-600 hover:bg-green-700 text-white text-xs font-medium px-3 py-1.5 rounded-lg transition shadow-sm flex items-center gap-1">
+                                        📞 Call
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // ==================== ADD PRODUCT MODAL ====================
+        function openAddProductModal() {
+            if (!auth || !auth.currentUser) {
+                alert("Please log in first to list a product for sale.");
+                window.location.href = "login.html";
+                return;
+            }
+            document.getElementById('postProductError').classList.add('hidden');
+            document.getElementById('productPhotoPreviewContainer').classList.add('hidden');
+            productPhotoBase64 = null;
+            document.getElementById('addProductModal').classList.remove('hidden');
+        }
+
+        function closeAddProductModal() {
+            document.getElementById('addProductModal').classList.add('hidden');
+        }
+
+        function previewProductPhoto(event) {
+            const file = event.target.files[0];
+            const previewContainer = document.getElementById('productPhotoPreviewContainer');
+            const previewImg = document.getElementById('productPhotoPreview');
+
+            if (file) {
+                if (file.size > 4 * 1024 * 1024) {
+                    alert("Image must be smaller than 4MB.");
+                    event.target.value = "";
+                    return;
+                }
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    productPhotoBase64 = e.target.result;
+                    previewImg.src = productPhotoBase64;
+                    previewContainer.classList.remove('hidden');
+                };
+                reader.readAsDataURL(file);
+            } else {
+                previewContainer.classList.add('hidden');
+                productPhotoBase64 = null;
+            }
+        }
+
+        async function handlePostProduct(event) {
+            event.preventDefault();
+            const btn = document.getElementById('submitProductBtn');
+            const errEl = document.getElementById('postProductError');
+            errEl.classList.add('hidden');
+
+            const title = document.getElementById('prodTitle').value.trim();
+            const category = document.getElementById('prodCategory').value;
+            const price = parseFloat(document.getElementById('prodPrice').value);
+            const condition = document.getElementById('prodCondition').value;
+            const location = document.getElementById('prodLocation').value.trim();
+            const contact = document.getElementById('prodContact').value.trim();
+            const description = document.getElementById('prodDescription').value.trim();
+            const fileInput = document.getElementById('prodImage');
+
+            if (!title || isNaN(price) || price < 0 || !location || !contact) {
+                errEl.textContent = "Please fill in all required fields with valid details.";
+                errEl.classList.remove('hidden');
+                return;
+            }
+
+            btn.disabled = true;
+            btn.innerHTML = `<span>Listing Product...</span>`;
+
+            try {
+                let imageUrl = "";
+                if (fileInput.files && fileInput.files[0]) {
+                    const file = fileInput.files[0];
+                    if (storage) {
+                        try {
+                            const storageRef = storage.ref(`products/${Date.now()}_${file.name}`);
+                            const snap = await storageRef.put(file);
+                            imageUrl = await snap.ref.getDownloadURL();
+                        } catch (sErr) {
+                            console.warn("Storage upload failed, fallback to base64 preview:", sErr);
+                            imageUrl = productPhotoBase64 || "";
+                        }
+                    } else if (productPhotoBase64) {
+                        imageUrl = productPhotoBase64;
+                    }
+                }
+
+                const user = auth.currentUser;
+                const userDoc = await db.collection("users").doc(user.uid).get();
+                const userData = userDoc.exists ? userDoc.data() : {};
+
+                const newProduct = {
+                    title,
+                    category,
+                    price,
+                    condition,
+                    location,
+                    contact,
+                    description,
+                    imageUrl,
+                    sellerUid: user.uid,
+                    sellerName: userData.name || user.displayName || (user.email ? user.email.split('@')[0] : "Student"),
+                    sellerStudentId: userData.studentId || (user.email ? user.email.split('@')[0] : ""),
+                    sellerEmail: user.email,
+                    createdAt: new Date()
+                };
+
+                await db.collection("products").add(newProduct);
+
+                closeAddProductModal();
+                event.target.reset();
+                document.getElementById('productPhotoPreviewContainer').classList.add('hidden');
+                productPhotoBase64 = null;
+            } catch (err) {
+                console.error("Failed to post product:", err);
+                errEl.textContent = err.message || "Failed to list product. Please try again.";
+                errEl.classList.remove('hidden');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = `<span>List Product</span>`;
+            }
+        }
+
+        async function deleteProduct(productId) {
+            if (!confirm("Are you sure you want to delete this listing?")) return;
+            try {
+                await db.collection("products").doc(productId).delete();
+            } catch (err) {
+                alert("Failed to delete product: " + err.message);
+            }
+        }
+    </script>
+</body>
+</html>

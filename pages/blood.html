@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blood Group Directory - RUET Connect</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
+</head>
+<body class="bg-gray-50 text-gray-800">
+
+    <!-- ==================== GLOBAL NAVBAR ==================== -->
+    <nav id="mainNavbar" class="bg-blue-950 text-white shadow-lg sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+            <a href="../index.html" class="flex items-center gap-2">
+                <span class="text-2xl">🎓</span>
+                <span class="text-xl font-bold tracking-wide">RUET CONNECT</span>
+            </a>
+            <div class="h-8 w-24 bg-blue-900/60 rounded-lg animate-pulse"></div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="max-w-6xl mx-auto px-4 py-10">
+
+        <!-- Header -->
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-900">Blood Group Directory</h1>
+                <p class="text-gray-500 mt-1">Find willing donors in RUET halls & post emergency blood requests</p>
+            </div>
+            <button onclick="openRequestModal()" 
+                    class="bg-red-600 hover:bg-red-700 text-white px-5 py-2.5 rounded-xl font-medium transition shadow-md flex items-center gap-2">
+                <span>🩸</span> Post Blood Request
+            </button>
+        </div>
+
+        <!-- Donation Willingness Toggle Card -->
+        <div class="bg-white rounded-2xl border border-gray-100 p-5 mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 shadow-sm">
+            <div>
+                <h3 class="font-bold text-gray-800">Are you willing to donate blood?</h3>
+                <p class="text-xs sm:text-sm text-gray-500 mt-0.5">Toggle this on to appear in the available donors list when someone needs your blood group.</p>
+            </div>
+            <div class="flex items-center gap-3">
+                <span id="donateStatusLabel" class="text-xs font-semibold text-gray-500">Not Available</span>
+                <label class="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" id="donateToggle" class="sr-only peer" onchange="toggleDonation()">
+                    <div class="w-14 h-7 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-green-500"></div>
+                </label>
+            </div>
+        </div>
+
+        <!-- Directory Tabs -->
+        <div class="flex border-b border-gray-200 mb-6 font-semibold text-sm">
+            <button onclick="showTab('donors')" id="tab-donors" class="px-5 py-3 border-b-2 border-red-600 text-red-600 transition">
+                🩸 Available Donors (<span id="donorsCount">0</span>)
+            </button>
+            <button onclick="showTab('requests')" id="tab-requests" class="px-5 py-3 text-gray-500 hover:text-red-600 transition">
+                🚨 Emergency Requests (<span id="requestsCount">0</span>)
+            </button>
+            <button onclick="showTab('allusers')" id="tab-allusers" class="px-5 py-3 text-gray-500 hover:text-red-600 transition">
+                👥 Student Directory
+            </button>
+        </div>
+
+        <!-- ==================== DONORS TAB ==================== -->
+        <div id="donorsTab">
+            <!-- Search & Filter Controls -->
+            <div class="bg-white rounded-2xl border border-gray-100 p-5 mb-6 shadow-sm">
+                <!-- Search Input -->
+                <div class="relative mb-4">
+                    <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">🔍</span>
+                    <input type="text" id="donorSearchInput" oninput="applyDonorFilters()" 
+                           placeholder="Search donor by name, student ID, department, or residential hall..." 
+                           class="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-red-500">
+                </div>
+
+                <!-- Blood Group Pills -->
+                <div class="flex flex-wrap gap-2">
+                    <button onclick="filterDonors('all')" class="donor-pill px-4 py-1.5 rounded-full text-xs font-semibold bg-red-600 text-white transition" data-group="all">All Groups</button>
+                    <button onclick="filterDonors('A+')" class="donor-pill px-4 py-1.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-700 hover:bg-gray-200 transition" data-group="A+">A+</button>
+                    <button onclick="filterDonors('A-')" class="donor-pill px-4 py-1.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-700 hover:bg-gray-200 transition" data-group="A-">A-</button>
+                    <button onclick="filterDonors('B+')" class="donor-pill px-4 py-1.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-700 hover:bg-gray-200 transition" data-group="B+">B+</button>
+                    <button onclick="filterDonors('B-')" class="donor-pill px-4 py-1.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-700 hover:bg-gray-200 transition" data-group="B-">B-</button>
+                    <button onclick="filterDonors('AB+')" class="donor-pill px-4 py-1.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-700 hover:bg-gray-200 transition" data-group="AB+">AB+</button>
+                    <button onclick="filterDonors('AB-')" class="donor-pill px-4 py-1.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-700 hover:bg-gray-200 transition" data-group="AB-">AB-</button>
+                    <button onclick="filterDonors('O+')" class="donor-pill px-4 py-1.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-700 hover:bg-gray-200 transition" data-group="O+">O+</button>
+                    <button onclick="filterDonors('O-')" class="donor-pill px-4 py-1.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-700 hover:bg-gray-200 transition" data-group="O-">O-</button>
+                </div>
+            </div>
+
+            <!-- Donors Grid -->
+            <div id="donorsList" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="col-span-full text-center py-12 text-gray-400">
+                    <div class="w-8 h-8 border-3 border-red-500 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
+                    <p class="text-sm">Loading verified donors...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== EMERGENCY REQUESTS TAB ==================== -->
+        <div id="requestsTab" class="hidden">
+            <div id="requestsList" class="space-y-4">
+                <div class="text-center py-12 text-gray-400">
+                    <p class="text-sm">Loading blood requests...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== ALL USERS DIRECTORY TAB ==================== -->
+        <div id="allusersTab" class="hidden">
+            <div class="bg-white rounded-2xl border border-gray-100 p-4 mb-6 shadow-sm">
+                <input type="text" id="allUsersSearchInput" oninput="applyAllUsersFilter()" 
+                       placeholder="Filter students by name, ID, hall, or department..." 
+                       class="w-full px-4 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+            <div id="allUsersList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div class="col-span-full text-center py-12 text-gray-400">
+                    <p class="text-sm">Loading students directory...</p>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- ==================== BLOOD REQUEST MODAL ==================== -->
+    <div id="requestModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 hidden p-4 overflow-y-auto">
+        <div class="bg-white rounded-2xl w-full max-w-md mx-4 p-6 shadow-2xl border border-gray-100 animate-fade-up">
+            <div class="flex justify-between items-center mb-5 pb-3 border-b border-gray-100">
+                <div class="flex items-center gap-2">
+                    <span class="text-xl">🩸</span>
+                    <h2 class="text-lg font-bold text-gray-900">Post Emergency Request</h2>
+                </div>
+                <button onclick="closeRequestModal()" class="text-gray-400 hover:text-gray-600 text-2xl font-bold leading-none">&times;</button>
+            </div>
+
+            <form onsubmit="handleRequestSubmit(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">Blood Group Needed *</label>
+                    <select id="reqBlood" required class="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-red-500 bg-white">
+                        <option value="">Select Blood Group</option>
+                        <option value="A+">A+</option><option value="A-">A-</option>
+                        <option value="B+">B+</option><option value="B-">B-</option>
+                        <option value="AB+">AB+</option><option value="AB-">AB-</option>
+                        <option value="O+">O+</option><option value="O-">O-</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">Hospital / Location *</label>
+                    <input type="text" id="reqLocation" placeholder="e.g. Rajshahi Medical College Hospital (RMCH)" required
+                        class="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-red-500">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">Contact Phone *</label>
+                    <input type="tel" id="reqContact" placeholder="01XXXXXXXXX" required
+                        class="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-red-500">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">Patient Details & Urgency</label>
+                    <textarea id="reqNote" rows="3" placeholder="Number of bags required, urgency (immediate / tomorrow), patient relation..."
+                        class="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-red-500"></textarea>
+                </div>
+
+                <div id="reqError" class="hidden text-red-600 text-xs bg-red-50 p-2.5 rounded-lg border border-red-200"></div>
+
+                <div class="flex items-center justify-end gap-3 pt-3 border-t border-gray-100">
+                    <button type="button" onclick="closeRequestModal()" class="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 font-medium">
+                        Cancel
+                    </button>
+                    <button type="submit" id="submitReqBtn" class="bg-red-600 hover:bg-red-700 text-white font-medium px-6 py-2.5 rounded-xl text-sm transition shadow-md flex items-center gap-2">
+                        <span>Post Request</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Firebase Logic -->
+    <script src="../js/firebase.js"></script>
+
+    <script>
+        let allDonors = [];
+        let allRequests = [];
+        let allStudents = [];
+        let currentFilter = "all";
+
+        document.addEventListener("DOMContentLoaded", () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const q = urlParams.get('q');
+            if (q) {
+                const cleanQ = q.trim();
+                const validGroups = ['A+','A-','B+','B-','AB+','AB-','O+','O-'];
+                if (validGroups.includes(cleanQ.toUpperCase())) {
+                    currentFilter = cleanQ.toUpperCase();
+                } else {
+                    const searchInput = document.getElementById('donorSearchInput');
+                    if (searchInput) searchInput.value = cleanQ;
+                }
+            }
+
+            loadDonors();
+            loadRequests();
+        });
+
+        // Tabs
+        function showTab(tab) {
+            document.getElementById('donorsTab').classList.add('hidden');
+            document.getElementById('requestsTab').classList.add('hidden');
+            document.getElementById('allusersTab').classList.add('hidden');
+
+            document.getElementById('tab-donors').className = "px-5 py-3 text-gray-500 hover:text-red-600 transition font-semibold";
+            document.getElementById('tab-requests').className = "px-5 py-3 text-gray-500 hover:text-red-600 transition font-semibold";
+            document.getElementById('tab-allusers').className = "px-5 py-3 text-gray-500 hover:text-red-600 transition font-semibold";
+
+            if (tab === 'donors') {
+                document.getElementById('donorsTab').classList.remove('hidden');
+                document.getElementById('tab-donors').className = "px-5 py-3 border-b-2 border-red-600 text-red-600 transition font-semibold";
+            } else if (tab === 'requests') {
+                document.getElementById('requestsTab').classList.remove('hidden');
+                document.getElementById('tab-requests').className = "px-5 py-3 border-b-2 border-red-600 text-red-600 transition font-semibold";
+            } else if (tab === 'allusers') {
+                document.getElementById('allusersTab').classList.remove('hidden');
+                document.getElementById('tab-allusers').className = "px-5 py-3 border-b-2 border-red-600 text-red-600 transition font-semibold";
+                loadAllUsers();
+            }
+        }
+
+        // Toggle user donation status
+        async function toggleDonation() {
+            if (!auth || !auth.currentUser) {
+                alert("Please log in first to update your donor status.");
+                document.getElementById('donateToggle').checked = false;
+                window.location.href = "login.html";
+                return;
+            }
+
+            const isChecked = document.getElementById('donateToggle').checked;
+            const label = document.getElementById('donateStatusLabel');
+            if (label) {
+                label.textContent = isChecked ? "Available to Donate" : "Not Available";
+                label.className = isChecked ? "text-xs font-semibold text-green-600" : "text-xs font-semibold text-gray-500";
+            }
+
+            try {
+                await updateCurrentUserData({ willingToDonate: isChecked });
+                loadDonors();
+            } catch (err) {
+                console.error("Failed to update status:", err);
+                alert("Failed to update donor status: " + err.message);
+            }
+        }
+
+        // Load Donors
+        function loadDonors() {
+            if (!db) return;
+            db.collection("users")
+                .where("willingToDonate", "==", true)
+                .onSnapshot(snapshot => {
+                    allDonors = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    document.getElementById('donorsCount').textContent = allDonors.length;
+                    applyDonorFilters();
+                }, err => {
+                    console.error("Error loading donors:", err);
+                    document.getElementById('donorsList').innerHTML = `<p class="col-span-full text-center text-red-500 py-10">Error loading donors.</p>`;
+                });
+        }
+
+        function filterDonors(group) {
+            currentFilter = group;
+            document.querySelectorAll('.donor-pill').forEach(btn => {
+                if (btn.dataset.group === group) {
+                    btn.className = "donor-pill px-4 py-1.5 rounded-full text-xs font-semibold bg-red-600 text-white transition";
+                } else {
+                    btn.className = "donor-pill px-4 py-1.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-700 hover:bg-gray-200 transition";
+                }
+            });
+            applyDonorFilters();
+        }
+
+        function applyDonorFilters() {
+            const term = (document.getElementById('donorSearchInput')?.value || '').toLowerCase().trim();
+            let filtered = allDonors.filter(d => {
+                const matchGroup = (currentFilter === 'all') || (d.bloodGroup === currentFilter);
+                const nameStr = (d.name || '').toLowerCase();
+                const hallStr = (d.hall || '').toLowerCase();
+                const deptStr = (d.department || '').toLowerCase();
+                const idStr = (d.studentId || '').toLowerCase();
+                const matchSearch = !term || nameStr.includes(term) || hallStr.includes(term) || deptStr.includes(term) || idStr.includes(term);
+                return matchGroup && matchSearch;
+            });
+            renderDonors(filtered);
+        }
+
+        function renderDonors(donors) {
+            const container = document.getElementById('donorsList');
+            if (donors.length === 0) {
+                container.innerHTML = `
+                    <div class="col-span-full bg-white rounded-2xl p-12 text-center border border-gray-100">
+                        <div class="text-4xl mb-3">🩸</div>
+                        <h3 class="text-lg font-bold text-gray-800">No donors match your search</h3>
+                        <p class="text-sm text-gray-500 mt-1">Try selecting another blood group or clearing the search filter.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const isLoggedIn = !!auth?.currentUser;
+
+            container.innerHTML = donors.map(donor => {
+                const studentId = donor.studentId || (donor.email ? donor.email.split('@')[0] : '');
+                const initial = (donor.name || "U").charAt(0).toUpperCase();
+
+                return `
+                    <div class="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm hover:shadow-md transition-all flex flex-col justify-between">
+                        <div>
+                            <div class="flex justify-between items-start mb-3">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-10 h-10 rounded-full bg-red-100 text-red-700 flex items-center justify-center font-bold text-sm flex-shrink-0">
+                                        ${initial}
+                                    </div>
+                                    <div>
+                                        <a href="view-profile.html?id=${donor.id}" class="font-bold text-gray-900 text-base hover:text-red-600 transition">
+                                            ${escapeHtml(donor.name || 'RUET Student')}
+                                        </a>
+                                        ${studentId ? `<span class="text-xs text-blue-700 font-mono font-medium block">ID: ${escapeHtml(studentId)}</span>` : ''}
+                                    </div>
+                                </div>
+                                <span class="bg-red-600 text-white text-xs font-bold px-3 py-1 rounded-full shadow-sm">
+                                    ${escapeHtml(donor.bloodGroup || '-')}
+                                </span>
+                            </div>
+
+                            <p class="text-xs text-gray-600 mb-2">
+                                🏛️ <span class="font-medium">${escapeHtml(donor.department || 'Department N/A')}</span> 
+                                ${donor.hall ? `• 🏢 <span class="font-medium">${escapeHtml(donor.hall)}</span>` : ''}
+                            </p>
+                        </div>
+
+                        <div class="mt-4 pt-3 border-t border-gray-100 flex items-center justify-between">
+                            ${isLoggedIn ? `
+                                <div class="flex items-center gap-2">
+                                    ${donor.phone ? `
+                                        <a href="tel:${escapeHtml(donor.phone)}" class="bg-green-600 hover:bg-green-700 text-white text-xs font-medium px-3.5 py-1.5 rounded-lg transition shadow-sm flex items-center gap-1">
+                                            <span>📞</span> Call: ${escapeHtml(donor.phone)}
+                                        </a>
+                                    ` : `
+                                        <span class="text-xs text-gray-400">Phone not provided</span>
+                                    `}
+                                    <a href="view-profile.html?id=${donor.id}" class="text-xs text-blue-600 hover:underline font-medium">
+                                        View Profile →
+                                    </a>
+                                </div>
+                            ` : `
+                                <p class="text-xs text-gray-500">
+                                    🔒 <a href="login.html" class="text-blue-600 font-semibold hover:underline">Login</a> to view contact details
+                                </p>
+                            `}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // ==================== EMERGENCY REQUESTS ====================
+        function openRequestModal() {
+            if (!auth || !auth.currentUser) {
+                alert("Please log in first to post an emergency blood request.");
+                window.location.href = "login.html";
+                return;
+            }
+            document.getElementById('reqError').classList.add('hidden');
+            document.getElementById('requestModal').classList.remove('hidden');
+        }
+
+        function closeRequestModal() {
+            document.getElementById('requestModal').classList.add('hidden');
+        }
+
+        async function handleRequestSubmit(event) {
+            event.preventDefault();
+            const blood = document.getElementById('reqBlood').value;
+            const location = document.getElementById('reqLocation').value.trim();
+            const contact = document.getElementById('reqContact').value.trim();
+            const note = document.getElementById('reqNote').value.trim();
+            const errorMsg = document.getElementById('reqError');
+            const submitBtn = document.getElementById('submitReqBtn');
+
+            errorMsg.classList.add('hidden');
+
+            if (!blood || !location || !contact) {
+                errorMsg.textContent = "Please fill in Blood Group, Location, and Contact Phone.";
+                errorMsg.classList.remove('hidden');
+                return;
+            }
+
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = `<span>Posting...</span>`;
+
+            try {
+                const user = auth.currentUser;
+                const userDoc = await db.collection("users").doc(user.uid).get();
+                const userData = userDoc.exists ? userDoc.data() : {};
+
+                const reqData = {
+                    bloodGroup: blood,
+                    location: location,
+                    contact: contact,
+                    note: note,
+                    postedBy: user.uid,
+                    postedByName: userData.name || user.displayName || (user.email ? user.email.split('@')[0] : "Student"),
+                    postedByStudentId: userData.studentId || (user.email ? user.email.split('@')[0] : ""),
+                    status: "active",
+                    createdAt: new Date()
+                };
+
+                await db.collection("bloodRequests").add(reqData);
+
+                closeRequestModal();
+                event.target.reset();
+            } catch (err) {
+                errorMsg.textContent = err.message || "Failed to post request.";
+                errorMsg.classList.remove('hidden');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = `<span>Post Request</span>`;
+            }
+        }
+
+        function loadRequests() {
+            if (!db) return;
+            db.collection("bloodRequests")
+                .where("status", "==", "active")
+                .orderBy("createdAt", "desc")
+                .onSnapshot(snapshot => {
+                    allRequests = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    document.getElementById('requestsCount').textContent = allRequests.length;
+                    renderRequests();
+                }, err => {
+                    console.warn("Index fallback for requests:", err);
+                    db.collection("bloodRequests").onSnapshot(snap => {
+                        allRequests = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+                            .filter(r => r.status === "active");
+                        allRequests.sort((a,b) => (b.createdAt?.toDate?.() || 0) - (a.createdAt?.toDate?.() || 0));
+                        document.getElementById('requestsCount').textContent = allRequests.length;
+                        renderRequests();
+                    });
+                });
+        }
+
+        function renderRequests() {
+            const container = document.getElementById('requestsList');
+            if (allRequests.length === 0) {
+                container.innerHTML = `
+                    <div class="bg-white rounded-2xl p-12 text-center border border-gray-100">
+                        <div class="text-4xl mb-3">🩺</div>
+                        <h3 class="text-lg font-bold text-gray-800">No active emergency blood requests</h3>
+                        <p class="text-sm text-gray-500 mt-1">All patient requests are currently fulfilled.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const currentUid = auth?.currentUser?.uid;
+
+            container.innerHTML = allRequests.map(req => {
+                const dateStr = formatDate(req.createdAt);
+                const isOwner = currentUid && (req.postedBy === currentUid);
+
+                return `
+                    <div class="bg-white rounded-2xl border border-red-100 p-5 shadow-sm">
+                        <div class="flex flex-col sm:flex-row justify-between items-start gap-4">
+                            <div>
+                                <div class="flex items-center gap-2.5 mb-2">
+                                    <span class="bg-red-600 text-white font-bold text-sm px-3 py-1 rounded-full shadow-sm">
+                                        ${escapeHtml(req.bloodGroup)}
+                                    </span>
+                                    <span class="text-xs font-bold uppercase tracking-wider text-red-600 bg-red-50 px-2 py-0.5 rounded">
+                                        Emergency Needed
+                                    </span>
+                                </div>
+                                <h3 class="font-bold text-gray-900 text-lg">📍 ${escapeHtml(req.location)}</h3>
+                                ${req.note ? `<p class="text-sm text-gray-600 mt-1 bg-red-50/50 p-2.5 rounded-xl border border-red-100">${escapeHtml(req.note)}</p>` : ''}
+                                
+                                <p class="text-xs text-gray-500 mt-3">
+                                    Posted by <a href="view-profile.html?id=${req.postedBy}" class="font-semibold text-blue-700 hover:underline">${escapeHtml(req.postedByName)}</a>
+                                    ${req.postedByStudentId ? `<span class="font-mono"> (ID: ${escapeHtml(req.postedByStudentId)})</span>` : ''} 
+                                    • ${dateStr}
+                                </p>
+                            </div>
+
+                            <div class="flex flex-col sm:items-end gap-2 w-full sm:w-auto">
+                                <a href="tel:${escapeHtml(req.contact)}" class="bg-red-600 hover:bg-red-700 text-white text-xs font-medium px-4 py-2 rounded-xl transition shadow-sm text-center flex items-center justify-center gap-1.5">
+                                    <span>📞</span> Call: ${escapeHtml(req.contact)}
+                                </a>
+                                ${isOwner ? `
+                                    <button onclick="fulfillRequest('${req.id}')" class="text-xs text-gray-500 hover:text-red-700 underline text-right">
+                                        Mark as Fulfilled / Delete
+                                    </button>
+                                ` : ''}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        async function fulfillRequest(docId) {
+            if (!confirm("Has this blood request been fulfilled? Marking it as fulfilled will remove it from the emergency board.")) return;
+            try {
+                await db.collection("bloodRequests").doc(docId).delete();
+            } catch (err) {
+                alert("Failed to update request: " + err.message);
+            }
+        }
+
+        // ==================== ALL USERS DIRECTORY ====================
+        function loadAllUsers() {
+            if (!db) return;
+            db.collection("users").onSnapshot(snapshot => {
+                allStudents = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                applyAllUsersFilter();
+            });
+        }
+
+        function applyAllUsersFilter() {
+            const term = (document.getElementById('allUsersSearchInput')?.value || '').toLowerCase().trim();
+            const filtered = allStudents.filter(u => {
+                const nameStr = (u.name || '').toLowerCase();
+                const idStr = (u.studentId || '').toLowerCase();
+                const hallStr = (u.hall || '').toLowerCase();
+                const deptStr = (u.department || '').toLowerCase();
+                return !term || nameStr.includes(term) || idStr.includes(term) || hallStr.includes(term) || deptStr.includes(term);
+            });
+            renderAllUsers(filtered);
+        }
+
+        function renderAllUsers(students) {
+            const container = document.getElementById('allUsersList');
+            if (students.length === 0) {
+                container.innerHTML = `<p class="col-span-full text-center text-gray-400 py-10">No students found.</p>`;
+                return;
+            }
+
+            container.innerHTML = students.map(u => `
+                <div class="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm flex items-center justify-between">
+                    <div>
+                        <a href="view-profile.html?id=${u.id}" class="font-bold text-gray-900 text-sm hover:text-blue-600 transition">
+                            ${escapeHtml(u.name || 'RUET Student')}
+                        </a>
+                        ${u.studentId ? `<p class="text-xs text-blue-700 font-mono">ID: ${escapeHtml(u.studentId)}</p>` : ''}
+                        <p class="text-xs text-gray-500 mt-0.5">${escapeHtml(u.department || '')} • ${escapeHtml(u.hall || '')}</p>
+                    </div>
+                    <span class="bg-blue-50 text-blue-700 text-xs font-bold px-2.5 py-1 rounded-full border border-blue-100">
+                        ${escapeHtml(u.bloodGroup || '-')}
+                    </span>
+                </div>
+            `).join('');
+        }
+
+        // Sync toggle on auth ready
+        window.onAuthReady((user) => {
+            if (user && user.willingToDonate) {
+                const t = document.getElementById('donateToggle');
+                const label = document.getElementById('donateStatusLabel');
+                if (t) t.checked = true;
+                if (label) {
+                    label.textContent = "Available to Donate";
+                    label.className = "text-xs font-semibold text-green-600";
+                }
+            }
+        });
+    </script>
+</body>
+</html>

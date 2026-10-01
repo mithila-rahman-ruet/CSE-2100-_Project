@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Club Hub - RUET Connect</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
+</head>
+<body class="bg-gray-50 text-gray-800">
+
+    <!-- ==================== GLOBAL NAVBAR ==================== -->
+    <nav id="mainNavbar" class="bg-blue-950 text-white shadow-lg sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+            <a href="../index.html" class="flex items-center gap-2">
+                <span class="text-2xl">🎓</span>
+                <span class="text-xl font-bold tracking-wide">RUET CONNECT</span>
+            </a>
+            <div class="h-8 w-24 bg-blue-900/60 rounded-lg animate-pulse"></div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-4 py-10">
+
+        <div class="text-center mb-10">
+            <h1 class="text-3xl md:text-4xl font-bold text-blue-950 mb-2">RUET Club Hub</h1>
+            <p class="text-gray-500 text-sm md:text-base max-w-2xl mx-auto">Explore all 34 recognized student clubs, technical societies, cultural organizations, and sports forums of RUET.</p>
+        </div>
+
+        <!-- Search & Filter Bar -->
+        <div class="bg-white rounded-2xl border border-gray-100 p-5 mb-8 shadow-sm">
+            <div class="relative max-w-md mx-auto mb-4">
+                <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">🔍</span>
+                <input type="text" id="clubSearch" oninput="filterClubs()" 
+                    placeholder="Search clubs by name, acronym, or category..." 
+                    class="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+
+            <!-- Category Pills -->
+            <div class="flex flex-wrap justify-center gap-2 pt-2 border-t border-gray-100">
+                <button onclick="setClubCategory('all')" class="club-cat-pill px-4 py-1.5 rounded-full text-xs font-semibold bg-blue-700 text-white transition" data-cat="all">All Clubs (34)</button>
+                <button onclick="setClubCategory('Technical')" class="club-cat-pill px-4 py-1.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-700 hover:bg-gray-200 transition" data-cat="Technical">Technical & Robotics</button>
+                <button onclick="setClubCategory('Cultural')" class="club-cat-pill px-4 py-1.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-700 hover:bg-gray-200 transition" data-cat="Cultural">Cultural & Arts</button>
+                <button onclick="setClubCategory('Sports')" class="club-cat-pill px-4 py-1.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-700 hover:bg-gray-200 transition" data-cat="Sports">Sports & Games</button>
+                <button onclick="setClubCategory('Career')" class="club-cat-pill px-4 py-1.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-700 hover:bg-gray-200 transition" data-cat="Career">Career & Debate</button>
+                <button onclick="setClubCategory('Departmental')" class="club-cat-pill px-4 py-1.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-700 hover:bg-gray-200 transition" data-cat="Departmental">Departmental</button>
+                <button onclick="setClubCategory('Science')" class="club-cat-pill px-4 py-1.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-700 hover:bg-gray-200 transition" data-cat="Science">Science & Research</button>
+            </div>
+        </div>
+
+        <!-- Clubs Grid -->
+        <div id="clubsGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-5">
+            <!-- Clubs rendered here -->
+        </div>
+
+    </main>
+
+    <!-- Global Firebase Logic -->
+    <script src="../js/firebase.js"></script>
+
+    <script>
+        const clubs = [
+            { id: 1, name: "RUET Career Forum", short: "RCF", year: "2019", category: "Career", logo: "../assets/images/clubs/rcf.svg" },
+            { id: 2, name: "RUET Debating Club", short: "RUET DC", year: "2019", category: "Career", logo: "../assets/images/clubs/ruet-dc.svg" },
+            { id: 3, name: "IEEE RUET Student Branch", short: "IEEE", year: "2019", category: "Technical", logo: "../assets/images/clubs/ieee.svg" },
+            { id: 4, name: "Photographic Society of RUET", short: "PSR", year: "2019", category: "Cultural", logo: "../assets/images/clubs/psr.svg" },
+            { id: 5, name: "Onuronon (The Cultural Club)", short: "Onuronon", year: "2019", category: "Cultural", logo: "../assets/images/clubs/onuronon.svg" },
+            { id: 6, name: "SCADR (Designers Society)", short: "SCADR", year: "2019", category: "Technical", logo: "../assets/images/clubs/scadr.svg" },
+            { id: 7, name: "Innovation Society of RUET", short: "ISR", year: "2019", category: "Technical", logo: "../assets/images/clubs/isr.svg" },
+            { id: 8, name: "Astronomy & Science Society", short: "ASSR", year: "2019", category: "Science", logo: "../assets/images/clubs/assr.svg" },
+            { id: 9, name: "Robotic Society of RUET", short: "RSR", year: "2019", category: "Technical", logo: "../assets/images/clubs/rsr.svg" },
+            { id: 10, name: "IPE Club, RUET", short: "IPE Club", year: "2019", category: "Departmental", logo: "../assets/images/clubs/ipe-club.svg" },
+            { id: 11, name: "Society of Process Engineers", short: "SPE", year: "2022", category: "Departmental", logo: "../assets/images/clubs/spe.svg" },
+            { id: 12, name: "Table Tennis Club", short: "TT Club", year: "2023", category: "Sports", logo: "../assets/images/clubs/tt-club.svg" },
+            { id: 13, name: "Nirapad Sharak Bandhan", short: "Nirab", year: "2023", category: "Social", logo: "../assets/images/clubs/nirab.svg" },
+            { id: 14, name: "ACES (Computer Engineering)", short: "ACES", year: "2023", category: "Departmental", logo: "../assets/images/clubs/aces.svg" },
+            { id: 15, name: "ACI Student Chapter", short: "ACI", year: "2023", category: "Departmental", logo: "../assets/images/clubs/aci.svg" },
+            { id: 16, name: "HULT PRIZE at RUET", short: "Hult Prize", year: "2023", category: "Career", logo: "../assets/images/clubs/hult-prize.svg" },
+            { id: 17, name: "URP Students Association", short: "URPSA", year: "2023", category: "Departmental", logo: "../assets/images/clubs/urpsa.svg" },
+            { id: 18, name: "Islamic Society of RUET", short: "Islamic Soc", year: "2023", category: "Cultural", logo: "../assets/images/clubs/islamic-soc.svg" },
+            { id: 19, name: "Sopan Social Club", short: "Sopan", year: "2023", category: "Social", logo: "../assets/images/clubs/sopan.svg" },
+            { id: 20, name: "TEAM ANNEXE RUET", short: "Annexe", year: "2023", category: "Technical", logo: "../assets/images/clubs/annexe.svg" },
+            { id: 21, name: "RUET Adventure Club", short: "Adventure", year: "2023", category: "Sports", logo: "../assets/images/clubs/adventure.svg" },
+            { id: 22, name: "RUET Football Club", short: "RUET FC", year: "2023", category: "Sports", logo: "../assets/images/clubs/ruet-fc.svg" },
+            { id: 23, name: "BECM Club RUET", short: "BECM Club", year: "2023", category: "Departmental", logo: "../assets/images/clubs/becm-club.svg" },
+            { id: 24, name: "TEDxRUET", short: "TEDx", year: "2023", category: "Career", logo: "../assets/images/clubs/tedx.svg" },
+            { id: 25, name: "Radio RUET", short: "Radio RUET", year: "2023", category: "Cultural", logo: "../assets/images/clubs/radio-ruet.svg" },
+            { id: 26, name: "MTE Career Club", short: "MTE Career", year: "2023", category: "Career", logo: "../assets/images/clubs/mte-career.svg" },
+            { id: 27, name: "RUET Chess Club", short: "Chess", year: "2023", category: "Sports", logo: "../assets/images/clubs/chess.svg" },
+            { id: 28, name: "RUET Cricket Club", short: "Cricket", year: "2023", category: "Sports", logo: "../assets/images/clubs/cricket.svg" },
+            { id: 29, name: "RUET IoT Club", short: "IoT Club", year: "2023", category: "Technical", logo: "../assets/images/clubs/iot-club.svg" },
+            { id: 30, name: "RUET TIS Club", short: "TIS", year: "2023", category: "Technical", logo: "../assets/images/clubs/tis.svg" },
+            { id: 31, name: "SAER (Automotive Eng)", short: "SAER", year: "2023", category: "Technical", logo: "../assets/images/clubs/saer.svg" },
+            { id: 32, name: "RUET Cyber Security Club", short: "Cyber Sec", year: "2023", category: "Technical", logo: "../assets/images/clubs/cyber-sec.svg" },
+            { id: 33, name: "Earthquake Society of RUET", short: "Earthquake", year: "2023", category: "Science", logo: "../assets/images/clubs/earthquake.svg" },
+            { id: 34, name: "RUET eSports Community", short: "eSports", year: "2023", category: "Sports", logo: "../assets/images/clubs/esports.svg" }
+        ];
+
+        let selectedCategory = 'all';
+
+        document.addEventListener("DOMContentLoaded", () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const q = urlParams.get('q');
+            if (q) {
+                const s = document.getElementById('clubSearch');
+                if (s) s.value = q;
+            }
+            filterClubs();
+        });
+
+        function setClubCategory(cat) {
+            selectedCategory = cat;
+            document.querySelectorAll('.club-cat-pill').forEach(btn => {
+                if (btn.dataset.cat === cat) {
+                    btn.className = "club-cat-pill px-4 py-1.5 rounded-full text-xs font-semibold bg-blue-700 text-white transition";
+                } else {
+                    btn.className = "club-cat-pill px-4 py-1.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-700 hover:bg-gray-200 transition";
+                }
+            });
+            filterClubs();
+        }
+
+        function filterClubs() {
+            const term = (document.getElementById('clubSearch')?.value || '').toLowerCase().trim();
+            const filtered = clubs.filter(c => {
+                const matchCat = (selectedCategory === 'all') || (c.category === selectedCategory);
+                const nameStr = c.name.toLowerCase();
+                const shortStr = c.short.toLowerCase();
+                const catStr = c.category.toLowerCase();
+                const matchSearch = !term || nameStr.includes(term) || shortStr.includes(term) || catStr.includes(term);
+                return matchCat && matchSearch;
+            });
+            renderClubs(filtered);
+        }
+
+        function renderClubs(list) {
+            const grid = document.getElementById('clubsGrid');
+
+            if (list.length === 0) {
+                grid.innerHTML = `
+                    <div class="col-span-full bg-white rounded-2xl p-12 text-center border border-gray-100">
+                        <div class="text-4xl mb-2">👥</div>
+                        <h3 class="font-bold text-gray-800">No clubs match your search</h3>
+                        <p class="text-xs text-gray-500 mt-1">Try another keyword or category filter.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            grid.innerHTML = list.map(club => `
+                <a href="club-details.html?id=${club.id}" 
+                   class="bg-white rounded-2xl shadow-sm border border-gray-100 hover:shadow-lg hover:-translate-y-1 transition-all duration-200 p-4 flex flex-col items-center text-center group">
+                    
+                    <!-- Logo -->
+                    <div class="w-20 h-20 mb-3 flex items-center justify-center p-2 rounded-xl bg-slate-50 border border-slate-100">
+                        <img src="${club.logo}" alt="${escapeHtml(club.short)}" class="max-w-full max-h-full object-contain" 
+                             onerror="this.parentElement.innerHTML='<div class=\\'w-14 h-14 rounded-full bg-blue-700 text-white flex items-center justify-center font-bold text-xl\\'>${club.short.charAt(0)}</div>'">
+                    </div>
+
+                    <!-- Category Badge -->
+                    <span class="text-[10px] uppercase font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full mb-1">
+                        ${escapeHtml(club.category)}
+                    </span>
+
+                    <!-- Name -->
+                    <h3 class="font-bold text-gray-900 text-xs sm:text-sm leading-tight group-hover:text-blue-700 transition line-clamp-2">
+                        ${escapeHtml(club.name)}
+                    </h3>
+                    <p class="text-[11px] text-gray-400 font-mono mt-1">Est. ${club.year}</p>
+                </a>
+            `).join('');
+        }
+    </script>
+</body>
+</html>
