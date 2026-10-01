@@ -24,6 +24,7 @@
 - View other students' profiles
 
 ### 📚 Notes Vault
+
 A centralized space for sharing and accessing academic resources.
 
 - Upload and share course notes
@@ -35,6 +36,7 @@ A centralized space for sharing and accessing academic resources.
 - Support for different academic resources and study materials
 
 ### 🔎 Lost & Found
+
 A dedicated campus lost-and-found system.
 
 - Post lost or found items
@@ -45,6 +47,7 @@ A dedicated campus lost-and-found system.
 - Display useful information about the person who posted an item
 
 ### 🩸 Blood Donation
+
 A student-oriented blood donor directory.
 
 - Search for blood donors
@@ -53,6 +56,7 @@ A student-oriented blood donor directory.
 - Help students quickly find potential donors within the RUET community
 
 ### 🛒 Sell & Buy Marketplace
+
 A campus marketplace for second-hand items.
 
 Students can post and discover:
@@ -73,6 +77,7 @@ Additional functionality includes:
 - Seller information
 
 ### 🏫 RUET Clubs Hub
+
 Explore student clubs and organizations at RUET.
 
 - Browse available clubs
@@ -99,37 +104,16 @@ Explore student clubs and organizations at RUET.
 ### Development Tools
 - Git
 - GitHub
-- Visual Studio Code
 
 ---
 
-## 🏗️ Project Structure
+## 🚀 Run Locally
 
-```text
-CSE-2100-Project/
-│
-├── index.html
-│
-├── pages/
-│   ├── login.html
-│   ├── profile.html
-│   ├── view-profile.html
-│   ├── notes.html
-│   ├── lost-found.html
-│   ├── sell-buy.html
-│   ├── blood.html
-│   ├── club-hub.html
-│   └── club-details.html
-│
-├── js/
-│   └── firebase.js
-│
-├── css/
-│
-├── assets/
-│   └── images/
-│       └── clubs/
-│
-├── create_logos.py
-│
-└── README.mdv
+Follow the steps below to run **RUET Connect** on your local machine using **Git Bash**.
+
+### **Step 1: Clone the Repository**
+
+Open **Git Bash** and run:
+
+```bash
+git clone YOUR_GITHUB_REPOSITORY_URL
